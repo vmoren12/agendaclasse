@@ -112,6 +112,10 @@ Cada `push` a `main` dispara el flux de treball
 [`.github/workflows/pages.yml`](.github/workflows/pages.yml), que publica el
 contingut del repositori a GitHub Pages.
 
+La primera vegada cal activar Pages una sola vegada al repositori:
+**Settings › Pages › Build and deployment › Source: _GitHub Actions_**. A partir
+d'aquí, cada canvi es publica sol.
+
 ## Llicència
 
 Codi sota llicència [MIT](LICENSE). Les tipografies mantenen la seva llicència
