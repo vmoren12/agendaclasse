@@ -1,0 +1,51 @@
+{
+  "app": "Agendari",
+  "version": 2,
+  "className": "Aigua",
+  "publishedAt": "2026-09-13T23:54:18.054Z",
+  "subjects": [
+    {
+      "id": "smu0e6kue26faf8",
+      "name": "Català",
+      "color": "#4e8fd6"
+    },
+    {
+      "id": "smu0e6kuec1c61c",
+      "name": "Castellà",
+      "color": "#A5432F"
+    },
+    {
+      "id": "smu0e6kuee2522c",
+      "name": "Anglès",
+      "color": "#2A6199"
+    },
+    {
+      "id": "smu0e6kue81bc08",
+      "name": "Matemàtiques",
+      "color": "#5B4B9B"
+    },
+    {
+      "id": "smu0e6kue3ddfdd",
+      "name": "Medi",
+      "color": "#3B7D6E"
+    },
+    {
+      "id": "smu0e6kue9416e3",
+      "name": "Educació física",
+      "color": "#D1793F"
+    }
+  ],
+  "entries": [
+    {
+      "id": "emu0ewmt8658468",
+      "date": "2026-09-16",
+      "title": "Treball còmic",
+      "type": "deures",
+      "subjectId": "smu0e6kuec1c61c",
+      "notes": "Portar portada:\n- Color\n- Imprimir\n- Paginació",
+      "done": false,
+      "createdAt": 1789340117372,
+      "updatedAt": 1789340202409
+    }
+  ]
+}
