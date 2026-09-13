@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Pissarra">
+  <rect width="64" height="64" rx="14" fill="#2F5D50"/>
+  <rect x="12" y="16" width="40" height="32" rx="3.5" fill="#FAFAF7"/>
+  <path d="M15.5 16H19v32h-3.5A3.5 3.5 0 0 1 12 44.5v-25A3.5 3.5 0 0 1 15.5 16Z" fill="#A9791F"/>
+  <rect x="23" y="24" width="23" height="3.6" rx="1.8" fill="#1C1C1A"/>
+  <path d="m24 36.5 4.2 4.4L40 30.5" fill="none" stroke="#2F5D50" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,49 @@
+{
+  "id": "./",
+  "name": "Pissarra · agenda de classe",
+  "short_name": "Pissarra",
+  "description": "Agenda de classe senzilla: tasques, deures i dates rellevants per matèries, amb colors, temes i còpies de seguretat. Funciona sense connexió.",
+  "lang": "ca",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FAFAF7",
+  "theme_color": "#2F5D50",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "./assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nova entrada",
+      "short_name": "Nova",
+      "url": "./?action=new",
+      "icons": [{ "src": "./assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Avui",
+      "short_name": "Avui",
+      "url": "./?view=day",
+      "icons": [{ "src": "./assets/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

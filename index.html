@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ca" data-theme="light" data-accent="verd">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pissarra · agenda de classe</title>
+<meta name="description" content="Pissarra és una agenda de classe senzilla: tasques, deures i dates rellevants per matèries, amb colors, temes i còpies de seguretat. Funciona sense connexió.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#2F5D50">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pissarra">
+
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+<link rel="preload" href="./assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./assets/fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./assets/css/styles.css">
+
+<script>
+  /* Aplica el tema desat abans de pintar per evitar el parpelleig inicial. */
+  (function () {
+    try {
+      var saved = JSON.parse(localStorage.getItem('pissarra.data.v2') || '{}');
+      var settings = saved.settings || {};
+      var mode = settings.themeMode || 'auto';
+      var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      document.documentElement.dataset.accent = settings.accent || 'verd';
+    } catch (e) { /* preferències per defecte */ }
+  })();
+</script>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <h1>Pissarra</h1>
+      <button type="button" class="class-name" id="className" title="Canviar el nom de la classe">La meva classe</button>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="pill-btn" id="btnSettings" aria-haspopup="dialog">Configuració</button>
+      <button type="button" class="btn primary new-entry-desktop" id="btnNew">Nova entrada</button>
+    </div>
+  </header>
+
+  <p class="file-warning" id="fileWarning">
+    Has obert el fitxer directament des del disc. Perquè l'app funcioni del tot
+    (mòduls i mode fora de línia) obre-la des del web publicat o serveix la carpeta
+    amb un servidor local, per exemple <code>python -m http.server</code>.
+  </p>
+
+  <nav class="nav" aria-label="Vistes i període">
+    <div class="views" id="viewSwitch" role="group" aria-label="Canviar de vista">
+      <button type="button" data-view="day">Dia</button>
+      <button type="button" data-view="week">Setmana</button>
+      <button type="button" data-view="month" aria-current="true">Mes</button>
+      <button type="button" data-view="year">Any</button>
+      <button type="button" data-view="agenda">Agenda</button>
+    </div>
+    <div class="period">
+      <button type="button" class="round-btn" id="prevBtn" aria-label="Període anterior">‹</button>
+      <div class="period-label" id="periodLabel" aria-live="polite"></div>
+      <button type="button" class="round-btn" id="nextBtn" aria-label="Període següent">›</button>
+      <button type="button" class="pill-btn" id="todayBtn">Avui</button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="view" id="view-day" aria-label="Vista de dia" hidden>
+      <div class="day-head">
+        <div class="num" id="dayNum">1</div>
+        <div class="txt" id="dayTxt"></div>
+      </div>
+      <div class="entry-list" id="dayList"></div>
+    </section>
+
+    <section class="view" id="view-week" aria-label="Vista de setmana" hidden>
+      <div class="week-grid" id="weekGrid"></div>
+    </section>
+
+    <section class="view active" id="view-month" aria-label="Vista de mes">
+      <div class="month-weekdays" aria-hidden="true">
+        <div>dl</div><div>dt</div><div>dc</div><div>dj</div><div>dv</div><div>ds</div><div>dg</div>
+      </div>
+      <div class="month-grid" id="monthGrid"></div>
+    </section>
+
+    <section class="view" id="view-year" aria-label="Vista d'any" hidden>
+      <div class="year-grid" id="yearGrid"></div>
+    </section>
+
+    <section class="view" id="view-agenda" aria-label="Vista d'agenda" hidden>
+      <div id="agendaList"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Pissarra · les dades es desen només en aquest navegador</span>
+    <span><a href="https://github.com/vmoren12/agendaclasse" rel="noopener">Codi obert a GitHub</a></span>
+  </footer>
+
+</div>
+
+<button type="button" class="fab" id="btnNewFab" aria-label="Nova entrada">+</button>
+
+<!-- ------------------------------ Diàleg d'entrada ------------------------ -->
+<dialog id="entryDialog" aria-labelledby="entryDialogTitle">
+  <div class="sheet">
+    <h2 id="entryDialogTitle">Nova entrada</h2>
+    <p class="sheet-sub" id="entryDialogSub"></p>
+    <form id="entryForm">
+      <div class="field">
+        <label for="fDate">Data</label>
+        <input type="date" id="fDate" required>
+      </div>
+      <div class="field">
+        <label for="fTitle">Títol</label>
+        <input type="text" id="fTitle" placeholder="Ex: Entrega del treball de socials" maxlength="200" required>
+      </div>
+      <div class="field">
+        <span class="field-label" id="typeLabel">Tipus</span>
+        <div class="chip-row" id="typeChips" role="group" aria-labelledby="typeLabel"></div>
+      </div>
+      <div class="field">
+        <label for="fSubject">Matèria</label>
+        <select id="fSubject"></select>
+        <p class="hint">Les matèries i els seus colors s'editen a Configuració.</p>
+      </div>
+      <div class="field">
+        <label for="fNotes">Notes (opcional)</label>
+        <textarea id="fNotes" maxlength="2000" placeholder="Detalls, material necessari, criteris..."></textarea>
+      </div>
+      <div class="switch-row">
+        <input type="checkbox" id="fDone">
+        <label for="fDone">Marcar com a completada</label>
+      </div>
+      <div class="sheet-actions">
+        <button type="button" class="btn danger" id="btnDeleteEntry" hidden>Eliminar</button>
+        <div class="right">
+          <button type="button" class="btn ghost" id="btnCancelEntry">Cancel·lar</button>
+          <button type="submit" class="btn primary">Desar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<!-- --------------------------- Diàleg de configuració --------------------- -->
+<dialog id="settingsDialog" aria-labelledby="settingsTitle">
+  <div class="sheet wide">
+    <h2 id="settingsTitle">Configuració</h2>
+    <p class="sheet-sub">Els canvis es desen automàticament.</p>
+
+    <section class="settings-section">
+      <h3>Classe</h3>
+      <div class="field">
+        <label for="setClassName">Nom de la classe</label>
+        <input type="text" id="setClassName" maxlength="80" placeholder="Ex: 6è B · Escola Montseny">
+      </div>
+      <div class="field">
+        <label for="setDefaultView">Vista inicial</label>
+        <select id="setDefaultView"></select>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3>Aparença</h3>
+      <div class="field">
+        <span class="field-label" id="themeLabel">Tema</span>
+        <div class="chip-row" id="themeChips" role="group" aria-labelledby="themeLabel">
+          <button type="button" class="chip" data-mode="auto" aria-pressed="true">Automàtic</button>
+          <button type="button" class="chip" data-mode="light" aria-pressed="false">Clar</button>
+          <button type="button" class="chip" data-mode="dark" aria-pressed="false">Fosc</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="field-label" id="accentLabel">Color d'accent</span>
+        <div class="swatches" id="accentSwatches" role="group" aria-labelledby="accentLabel"></div>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3>Matèries</h3>
+      <p class="hint">Cada matèria té el seu color: les entrades que la facin servir es pintaran igual a totes les vistes.</p>
+      <div class="subject-rows" id="subjectRows"></div>
+      <button type="button" class="btn ghost small mt-10" id="btnAddSubject">+ Afegir matèria</button>
+      <datalist id="paletteList"></datalist>
+    </section>
+
+    <section class="settings-section">
+      <h3>Còpies de seguretat</h3>
+      <p class="hint">L'agenda es desa en aquest navegador. Exporta-la per guardar-la o passar-la a un altre dispositiu.</p>
+      <div class="chip-row my-12">
+        <button type="button" class="btn ghost small" id="btnExport">Exportar ara</button>
+        <button type="button" class="btn ghost small" id="btnImportMerge">Importar i combinar</button>
+        <button type="button" class="btn ghost small" id="btnImportReplace">Importar i substituir</button>
+        <input type="file" id="importFile" accept="application/json,.json" class="visually-hidden">
+      </div>
+      <div class="field">
+        <label for="backupMode">Còpia automàtica</label>
+        <select id="backupMode">
+          <option value="off">Desactivada</option>
+          <option value="changes">Cada cert nombre de canvis</option>
+          <option value="time">Cada cert temps</option>
+        </select>
+      </div>
+      <div class="row-inline">
+        <div class="field" id="backupChangesField" hidden>
+          <label for="setEveryChanges">Nombre de canvis</label>
+          <input type="number" id="setEveryChanges" min="1" max="999" step="1">
+        </div>
+        <div class="field" id="backupTimeField" hidden>
+          <label for="setEveryDays">Cada quants dies</label>
+          <input type="number" id="setEveryDays" min="1" max="365" step="1">
+        </div>
+      </div>
+      <p class="hint" id="backupStatus"></p>
+    </section>
+
+    <section class="settings-section">
+      <h3>Dades</h3>
+      <div class="chip-row">
+        <button type="button" class="btn ghost small" id="btnInstall" hidden>Instal·lar l'app</button>
+        <button type="button" class="btn danger small" id="btnClearEntries">Esborrar totes les entrades</button>
+      </div>
+      <p class="hint">Dreceres de teclat: <kbd>N</kbd> nova entrada · <kbd>T</kbd> avui · <kbd>←</kbd> <kbd>→</kbd> canviar de període · <kbd>1</kbd>–<kbd>5</kbd> canviar de vista.</p>
+    </section>
+
+    <div class="sheet-actions">
+      <div class="right">
+        <button type="button" class="btn primary" id="btnCloseSettings">Fet</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script type="module" src="./assets/js/app.js"></script>
+</body>
+</html>

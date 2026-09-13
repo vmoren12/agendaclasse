@@ -1,0 +1,15 @@
+# Sistema operatiu
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+
+# Dependencies i artefactes (l'app no en fa servir cap)
+node_modules/
+dist/
+
+# Copies de seguretat exportades
+agenda-*.json
