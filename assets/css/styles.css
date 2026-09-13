@@ -474,6 +474,7 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   overflow:hidden;
 }
 .month-cell{
+  position:relative;
   background:var(--surface);
   padding:6px 6px 8px;
   min-height:104px;
@@ -483,6 +484,44 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   text-align:left;
   border:none;
   transition:background .12s ease;
+}
+/* Botó invisible que cobreix la cel·la i obre el dia. */
+.cell-open{
+  position:absolute;
+  inset:0;
+  border:none;
+  background:transparent;
+  padding:0;
+}
+.cell-open:focus-visible{outline-offset:-3px;}
+/* El contingut no ha d'interceptar els clics destinats al botó del fons. */
+.month-cell > .cell-num,
+.month-cell > .cell-entries,
+.month-cell > .cell-dots{position:relative;pointer-events:none;}
+.cell-add{
+  position:absolute;
+  top:4px;
+  right:4px;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  border:1px solid var(--line-strong);
+  background:var(--surface);
+  color:var(--ink-soft);
+  font-size:.95rem;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  transition:opacity .12s ease,border-color .12s ease,color .12s ease;
+}
+.month-cell:hover .cell-add,
+.cell-add:focus-visible{opacity:1;}
+.cell-add:hover{border-color:var(--ink);color:var(--ink);background:var(--surface-2);}
+/* En pantalles tàctils no hi ha hover: sempre visible. */
+@media (hover:none){
+  .cell-add{opacity:1;}
 }
 .month-cell:hover{background:var(--surface-2);}
 .month-cell.outside{background:var(--surface-2);}
@@ -729,7 +768,13 @@ input[type="color"]::-webkit-color-swatch-wrapper{padding:0;}
 input[type="color"]::-webkit-color-swatch{border:none;border-radius:50%;}
 input[type="color"]::-moz-color-swatch{border:none;border-radius:50%;}
 .subject-row input[type="color"]{width:34px;height:34px;flex:none;}
-.subject-row .count{font-size:.76rem;color:var(--ink-faint);flex:none;}
+.subject-row .count{
+  font-size:.76rem;
+  color:var(--ink-faint);
+  flex:none;
+  min-width:74px;
+  text-align:right;
+}
 
 .stack{display:flex;flex-direction:column;gap:10px;}
 .choice{
@@ -800,6 +845,7 @@ input[type="color"]::-moz-color-swatch{border:none;border-radius:50%;}
   .new-entry-desktop{display:none;}
   .fab{display:flex;}
   .month-cell{min-height:62px;padding:4px 3px 6px;gap:2px;align-items:center;}
+  .cell-add{width:18px;height:18px;font-size:.8rem;top:2px;right:2px;}
   .cell-num{width:24px;height:24px;font-size:.92rem;}
   .cell-entries{display:none;}
   .cell-dots{display:flex;justify-content:center;}
@@ -821,7 +867,7 @@ input[type="color"]::-moz-color-swatch{border:none;border-radius:50%;}
 }
 
 @media print{
-  .top-actions,.views,.period,.fab,.toast-area,.app-footer,.entry-actions,.add-in-cell{display:none !important;}
+  .top-actions,.views,.period,.fab,.toast-area,.app-footer,.entry-actions,.add-in-cell,.cell-add{display:none !important;}
   body{background:#fff;}
   .app{padding:0;max-width:none;}
   .entry-card,.month-cell,.week-col{break-inside:avoid;}

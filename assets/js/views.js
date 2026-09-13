@@ -160,12 +160,27 @@ function renderMonth(refDate) {
     if (outside && i >= 28 && day > new Date(year, month + 1, 0) && day.getDay() === 1) break;
 
     const entries = entriesOn(toKey(day));
-    const cell = el('button', {
+    // La cel·la porta dos botons: obrir el dia (ocupa tot el fons) i afegir-hi
+    // una entrada (cantonada superior dreta), per això no és un botó ella mateixa.
+    const cell = el('div', {
       class: `month-cell${outside ? ' outside' : ''}${isSameDay(day, now) ? ' today' : ''}`,
-      type: 'button',
-      'aria-label': `${formatShort(day)}, ${entries.length} ${entries.length === 1 ? 'entrada' : 'entrades'}`,
-      onClick: () => actions.goToDay(day),
-    }, [el('span', { class: 'cell-num', text: String(day.getDate()) })]);
+    }, [
+      el('button', {
+        class: 'cell-open',
+        type: 'button',
+        'aria-label': `${formatShort(day)}, ${entries.length} ${entries.length === 1 ? 'entrada' : 'entrades'}`,
+        onClick: () => actions.goToDay(day),
+      }),
+      el('span', { class: 'cell-num', text: String(day.getDate()) }),
+      el('button', {
+        class: 'cell-add',
+        type: 'button',
+        text: '+',
+        title: 'Afegir una entrada',
+        'aria-label': `Afegir una entrada el ${formatShort(day)}`,
+        onClick: () => actions.newEntry(toKey(day)),
+      }),
+    ]);
 
     const pills = el('div', { class: 'cell-entries' });
     entries.slice(0, MAX_PILLS).forEach((entry) => {
