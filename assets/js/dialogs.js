@@ -6,12 +6,12 @@
 import { $, $$, clear, el } from './dom.js';
 import { formatShort, fromKey, toKey, today } from './dates.js';
 import {
-  ACCENTS, PALETTE, TYPES, VIEWS, addEntry, addSubject, countEntriesBySubject, data,
-  deleteEntry, deleteSubject, getEntry, subscribe, updateEntry, updateSettings,
-  updateBackupSettings, updateSubject, clearEntries,
+  ACCENTS, BACKUP_UNITS, PALETTE, TYPES, VIEWS, addEntry, addSubject, backupUnit,
+  countEntriesBySubject, data, deleteEntry, deleteSubject, getEntry, subscribe,
+  updateEntry, updateSettings, updateBackupSettings, updateSubject, clearEntries,
 } from './store.js';
 import { applyTheme } from './theme.js';
-import { backupStatusText, exportNow, importFromFile } from './backup.js';
+import { applyImport, backupStatusText, exportNow, readBackupFile } from './backup.js';
 import { toast } from './toast.js';
 
 const VIEW_LABELS = {
@@ -24,6 +24,7 @@ export function initDialogs(options = {}) {
   hooks = options;
   initEntryDialog();
   initSettingsDialog();
+  initImportDialog();
 }
 
 /* ---------------------------- Diàleg d'entrada ---------------------------- */
@@ -226,10 +227,12 @@ function renderSubjectRows() {
 }
 
 function renderBackupFields() {
-  const { mode, everyChanges, everyDays } = data.settings.backup;
+  const { mode, everyChanges, every, unit } = data.settings.backup;
   $('#backupMode').value = mode;
   $('#setEveryChanges').value = everyChanges;
-  $('#setEveryDays').value = everyDays;
+  $('#setEvery').value = every;
+  $('#setEvery').max = backupUnit(unit).max;
+  $('#setUnit').value = unit;
   $('#backupChangesField').hidden = mode !== 'changes';
   $('#backupTimeField').hidden = mode !== 'time';
   $('#backupStatus').textContent = backupStatusText();
@@ -245,11 +248,50 @@ function renderSettings() {
   $('#btnInstall').hidden = !hooks.canInstall?.();
 }
 
-function runImport(mode) {
-  const input = $('#importFile');
-  input.value = '';
-  input.dataset.mode = mode;
-  input.click();
+/* ------------------------- Diàleg d'importació ---------------------------- */
+
+let pendingImport = null;
+
+function summarizeImport(summary) {
+  const parts = [`${summary.entries} ${summary.entries === 1 ? 'entrada' : 'entrades'}`];
+  if (summary.subjects) {
+    parts.push(`${summary.subjects} ${summary.subjects === 1 ? 'matèria' : 'matèries'}`);
+  }
+  if (summary.className) parts.push(`classe «${summary.className}»`);
+  if (summary.exportedAt) parts.push(`del ${summary.exportedAt}`);
+  return `${summary.fileName} · ${parts.join(' · ')}`;
+}
+
+function initImportDialog() {
+  const dialog = $('#importDialog');
+
+  const apply = (mode) => {
+    if (!pendingImport) return;
+    const { payload } = pendingImport;
+    pendingImport = null;
+    dialog.close();
+    try {
+      const result = applyImport(payload, mode);
+      applyTheme(data.settings);
+      renderSettings();
+      toast(result.mode === 'replace'
+        ? `Agenda substituïda: ${result.entries} entrades.`
+        : `Importat: ${result.added} entrades noves, ${result.updated} actualitzades.`);
+    } catch (err) {
+      console.error('Error important:', err);
+      toast('No s\'ha pogut importar el fitxer.');
+    }
+  };
+
+  $('#btnImportMerge').addEventListener('click', () => apply('merge'));
+  $('#btnImportReplace').addEventListener('click', () => apply('replace'));
+  $('#btnCancelImport').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog.addEventListener('close', () => {
+    pendingImport = null;
+  });
 }
 
 function initSettingsDialog() {
@@ -304,8 +346,18 @@ function initSettingsDialog() {
     updateBackupSettings({ everyChanges: Math.max(1, Number(event.target.value) || 25) });
     renderBackupFields();
   });
-  $('#setEveryDays').addEventListener('change', (event) => {
-    updateBackupSettings({ everyDays: Math.max(1, Number(event.target.value) || 7) });
+  $('#setEvery').addEventListener('change', (event) => {
+    const max = backupUnit(data.settings.backup.unit).max;
+    const value = Math.min(max, Math.max(1, Number(event.target.value) || 1));
+    updateBackupSettings({ every: value });
+    renderBackupFields();
+  });
+  $('#setUnit').addEventListener('change', (event) => {
+    const unit = event.target.value;
+    updateBackupSettings({
+      unit,
+      every: Math.min(data.settings.backup.every, backupUnit(unit).max),
+    });
     renderBackupFields();
   });
 
@@ -313,28 +365,24 @@ function initSettingsDialog() {
     exportNow();
     renderBackupFields();
   });
-  $('#btnImportMerge').addEventListener('click', () => runImport('merge'));
-  $('#btnImportReplace').addEventListener('click', () => runImport('replace'));
 
+  $('#btnImport').addEventListener('click', () => {
+    const input = $('#importFile');
+    input.value = '';
+    input.click();
+  });
+
+  // En triar el fitxer només el llegim: la decisió es pren al diàleg.
   $('#importFile').addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
+    event.target.value = '';
     if (!file) return;
-    const mode = event.target.dataset.mode === 'replace' ? 'replace' : 'merge';
-    if (mode === 'replace' && !window.confirm('Substituir l\'agenda actual per la del fitxer? Es perdrà el que no estigui al fitxer.')) {
-      event.target.value = '';
-      return;
-    }
     try {
-      const result = await importFromFile(file, mode);
-      applyTheme(data.settings);
-      renderSettings();
-      toast(result.mode === 'replace'
-        ? `Agenda substituïda: ${result.entries} entrades.`
-        : `Importat: ${result.added} entrades noves, ${result.updated} actualitzades.`);
+      pendingImport = await readBackupFile(file);
+      $('#importSummary').textContent = summarizeImport(pendingImport.summary);
+      $('#importDialog').showModal();
     } catch (err) {
-      toast(err.message || 'No s\'ha pogut importar el fitxer.');
-    } finally {
-      event.target.value = '';
+      toast(err.message || 'No s\'ha pogut llegir el fitxer.');
     }
   });
 
@@ -359,6 +407,9 @@ export function openSettings() {
 export function fillStaticSelects() {
   const viewSelect = clear($('#setDefaultView'));
   VIEWS.forEach((view) => viewSelect.append(el('option', { value: view, text: VIEW_LABELS[view] })));
+
+  const unitSelect = clear($('#setUnit'));
+  BACKUP_UNITS.forEach((unit) => unitSelect.append(el('option', { value: unit.id, text: unit.label })));
 
   const typeChips = clear($('#typeChips'));
   TYPES.forEach((type) => {

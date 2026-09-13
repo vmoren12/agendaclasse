@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pissarra · agenda de classe</title>
-<meta name="description" content="Pissarra és una agenda de classe senzilla: tasques, deures i dates rellevants per matèries, amb colors, temes i còpies de seguretat. Funciona sense connexió.">
+<title>Agendari · agenda de classe</title>
+<meta name="description" content="Agendari és una agenda de classe senzilla: tasques, deures i dates rellevants per matèries, amb colors, temes i còpies de seguretat. Funciona sense connexió.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#2F5D50">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Pissarra">
+<meta name="apple-mobile-web-app-title" content="Agendari">
 
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./assets/icons/favicon.svg" type="image/svg+xml">
@@ -21,7 +21,7 @@
   /* Aplica el tema desat abans de pintar per evitar el parpelleig inicial. */
   (function () {
     try {
-      var saved = JSON.parse(localStorage.getItem('pissarra.data.v2') || '{}');
+      var saved = JSON.parse(localStorage.getItem('agendari.data.v2') || localStorage.getItem('pissarra.data.v2') || '{}');
       var settings = saved.settings || {};
       var mode = settings.themeMode || 'auto';
       var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -37,12 +37,18 @@
 
   <header class="top">
     <div class="brand">
-      <h1>Pissarra</h1>
+      <h1>Agendari</h1>
       <button type="button" class="class-name" id="className" title="Canviar el nom de la classe">La meva classe</button>
     </div>
     <div class="top-actions">
-      <button type="button" class="pill-btn" id="btnSettings" aria-haspopup="dialog">Configuració</button>
       <button type="button" class="btn primary new-entry-desktop" id="btnNew">Nova entrada</button>
+      <button type="button" class="round-btn gear" id="btnSettings" aria-haspopup="dialog"
+              aria-label="Configuració" title="Configuració">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M19.4 13.6a7.8 7.8 0 0 0 0-3.2l1.8-1.3-1.9-3.3-2.1.8a7.8 7.8 0 0 0-2.8-1.6L14 2h-4l-.4 2.9a7.8 7.8 0 0 0-2.8 1.6l-2.1-.8-1.9 3.3 1.8 1.3a7.8 7.8 0 0 0 0 3.2l-1.8 1.3 1.9 3.3 2.1-.8a7.8 7.8 0 0 0 2.8 1.6L10 22h4l.4-2.9a7.8 7.8 0 0 0 2.8-1.6l2.1.8 1.9-3.3z"/>
+        </svg>
+      </button>
     </div>
   </header>
 
@@ -98,7 +104,7 @@
   </main>
 
   <footer class="app-footer">
-    <span>Pissarra · les dades es desen només en aquest navegador</span>
+    <span>Agendari · les dades es desen només en aquest navegador</span>
     <span><a href="https://github.com/vmoren12/agendaclasse" rel="noopener">Codi obert a GitHub</a></span>
   </footer>
 
@@ -195,8 +201,7 @@
       <p class="hint">L'agenda es desa en aquest navegador. Exporta-la per guardar-la o passar-la a un altre dispositiu.</p>
       <div class="chip-row my-12">
         <button type="button" class="btn ghost small" id="btnExport">Exportar ara</button>
-        <button type="button" class="btn ghost small" id="btnImportMerge">Importar i combinar</button>
-        <button type="button" class="btn ghost small" id="btnImportReplace">Importar i substituir</button>
+        <button type="button" class="btn ghost small" id="btnImport">Importar una còpia</button>
         <input type="file" id="importFile" accept="application/json,.json" class="visually-hidden">
       </div>
       <div class="field">
@@ -213,8 +218,11 @@
           <input type="number" id="setEveryChanges" min="1" max="999" step="1">
         </div>
         <div class="field" id="backupTimeField" hidden>
-          <label for="setEveryDays">Cada quants dies</label>
-          <input type="number" id="setEveryDays" min="1" max="365" step="1">
+          <label for="setEvery">Cada</label>
+          <div class="input-pair">
+            <input type="number" id="setEvery" min="1" step="1" aria-label="Quantitat">
+            <select id="setUnit" aria-label="Unitat de temps"></select>
+          </div>
         </div>
       </div>
       <p class="hint" id="backupStatus"></p>
@@ -232,6 +240,29 @@
     <div class="sheet-actions">
       <div class="right">
         <button type="button" class="btn primary" id="btnCloseSettings">Fet</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<!-- --------------------------- Diàleg d'importació ------------------------ -->
+<dialog id="importDialog" aria-labelledby="importTitle">
+  <div class="sheet">
+    <h2 id="importTitle">Importar una còpia</h2>
+    <p class="sheet-sub" id="importSummary"></p>
+    <div class="stack">
+      <button type="button" class="choice" id="btnImportMerge">
+        <span class="choice-title">Combinar amb l'agenda actual</span>
+        <span class="choice-desc">Afegeix el que falta i actualitza les entrades repetides. No perds res del que tens ara.</span>
+      </button>
+      <button type="button" class="choice danger" id="btnImportReplace">
+        <span class="choice-title">Substituir-ho tot</span>
+        <span class="choice-desc">L'agenda actual s'esborra i es queda exactament el que hi ha al fitxer.</span>
+      </button>
+    </div>
+    <div class="sheet-actions">
+      <div class="right">
+        <button type="button" class="btn ghost" id="btnCancelImport">Cancel·lar</button>
       </div>
     </div>
   </div>

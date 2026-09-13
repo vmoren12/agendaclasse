@@ -1,4 +1,4 @@
-# Pissarra · agenda de classe
+# Agendari · agenda de classe
 
 Agenda de classe senzilla per apuntar **tasques, deures i dates rellevants**,
 organitzades per **matèries amb color**. Funciona al navegador, sense comptes ni
@@ -15,9 +15,9 @@ servidors: les dades es desen al dispositiu i es poden exportar quan vulguis.
   una. El color es veu a totes les vistes.
 - **Nom de la classe editable**: clica el nom que hi ha al costat del títol.
 - **Temes**: clar, fosc o automàtic (segueix el sistema), amb cinc colors d'accent.
-- **Còpies de seguretat**: exportació i importació en JSON, amb opció de
-  combinar o substituir. Es poden programar còpies automàtiques **cada X canvis**
-  o **cada X dies**.
+- **Còpies de seguretat**: exportació i importació en JSON; en importar,
+  l'app pregunta si vols combinar o substituir. Es poden programar còpies
+  automàtiques **cada X canvis** o **cada X minuts, hores, dies o setmanes**.
 - **PWA**: es pot instal·lar al mòbil o a l'escriptori i funciona sense connexió.
 - **Accessible i responsive**: teclat, lectors de pantalla, mòbil i escriptori.
 
@@ -33,7 +33,7 @@ servidors: les dades es desen al dispositiu i es poden exportar quan vulguis.
 
 ## Les teves dades
 
-Tot es desa a `localStorage` del navegador (clau `pissarra.data.v2`). No hi ha
+Tot es desa a `localStorage` del navegador (clau `agendari.data.v2`). No hi ha
 cap servidor, cap compte ni cap seguiment. Això vol dir dues coses:
 
 1. Les dades no viatgen enlloc.
@@ -43,7 +43,7 @@ El fitxer d'exportació és JSON llegible:
 
 ```json
 {
-  "app": "Pissarra",
+  "app": "Agendari",
   "version": 2,
   "exportedAt": "2026-09-13T18:00:00.000Z",
   "settings": { "className": "6è B", "themeMode": "auto", "accent": "verd" },
@@ -62,9 +62,16 @@ El fitxer d'exportació és JSON llegible:
 }
 ```
 
-En importar, **combinar** manté el que ja tens i afegeix el que falta (si una
-entrada existeix als dos costats, guanya la modificada més tard); **substituir**
-canvia tota l'agenda per la del fitxer.
+En triar un fitxer, l'app el llegeix, te'n mostra el resum (entrades, matèries,
+classe i data) i et deixa decidir: **combinar** manté el que ja tens i afegeix el
+que falta (si una entrada existeix als dos costats, guanya la modificada més
+tard); **substituir** canvia tota l'agenda per la del fitxer.
+
+Les còpies automàtiques per temps es comproven en obrir l'app, en tornar-hi i
+un cop per minut mentre és oberta. Com que el navegador no deixa baixar fitxers
+sense una acció teva, si venç mentre treballes la còpia surt sola després del
+següent canvi; si venç amb l'app aturada, en tornar veuràs un avís amb el botó
+per desar-la.
 
 ## Estructura del projecte
 

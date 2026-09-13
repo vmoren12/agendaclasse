@@ -1,13 +1,14 @@
 /**
  * Còpies de seguretat: exportació i importació en JSON, més les còpies
- * automàtiques programades (cada X canvis o cada X dies).
+ * automàtiques programades (cada X canvis o cada X minuts, hores, dies o
+ * setmanes).
  */
 
-import { APP_NAME, DATA_VERSION, data, markBackupDone, mergeAll, replaceAll } from './store.js';
+import {
+  APP_NAME, DATA_VERSION, backupUnit, data, markBackupDone, mergeAll, replaceAll,
+} from './store.js';
 import { formatDateTime, toKey, today } from './dates.js';
 import { toast } from './toast.js';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 function slug(text) {
   return text
@@ -31,7 +32,7 @@ export function buildBackup() {
 }
 
 export function backupFilename(auto = false) {
-  return `agenda-${slug(data.settings.className)}-${toKey(today())}${auto ? '-auto' : ''}.json`;
+  return `agendari-${slug(data.settings.className)}-${toKey(today())}${auto ? '-auto' : ''}.json`;
 }
 
 function download(filename, text) {
@@ -60,12 +61,14 @@ export function exportNow({ auto = false } = {}) {
   }
 }
 
+/* -------------------------------- Importació ----------------------------- */
+
 /**
- * Llegeix un fitxer JSON i el combina o el substitueix.
+ * Llegeix i valida un fitxer de còpia sense tocar encara les dades actuals.
  * @param {File} file
- * @param {'merge'|'replace'} mode
+ * @returns {Promise<{payload: object, summary: object}>}
  */
-export async function importFromFile(file, mode = 'merge') {
+export async function readBackupFile(file) {
   const text = await file.text();
   let parsed;
   try {
@@ -76,17 +79,42 @@ export async function importFromFile(file, mode = 'merge') {
   if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.entries)) {
     throw new Error('El fitxer no sembla una còpia de l\'agenda.');
   }
-  return mode === 'replace' ? { mode, ...replaceAll(parsed) } : { mode, ...mergeAll(parsed) };
+  return {
+    payload: parsed,
+    summary: {
+      fileName: file.name,
+      entries: parsed.entries.length,
+      subjects: Array.isArray(parsed.subjects) ? parsed.subjects.length : 0,
+      className: parsed.settings?.className || null,
+      exportedAt: parsed.exportedAt ? formatDateTime(Date.parse(parsed.exportedAt)) : null,
+    },
+  };
+}
+
+/**
+ * Aplica una còpia ja llegida.
+ * @param {object} payload
+ * @param {'merge'|'replace'} mode
+ */
+export function applyImport(payload, mode) {
+  return mode === 'replace'
+    ? { mode, ...replaceAll(payload) }
+    : { mode, ...mergeAll(payload) };
 }
 
 /* ------------------------- Còpies programades ---------------------------- */
 
+export function backupIntervalMs() {
+  const { every, unit } = data.settings.backup;
+  return every * backupUnit(unit).ms;
+}
+
 export function isBackupDue() {
-  const { mode, everyChanges, everyDays, changesSince, lastExportAt } = data.settings.backup;
+  const { mode, everyChanges, changesSince, lastExportAt } = data.settings.backup;
   if (mode === 'changes') return changesSince >= everyChanges;
   if (mode === 'time') {
     if (!lastExportAt) return true;
-    return Date.now() - lastExportAt >= everyDays * DAY_MS;
+    return Date.now() - lastExportAt >= backupIntervalMs();
   }
   return false;
 }
@@ -114,10 +142,21 @@ export function checkScheduledBackup({ fromUserAction = false } = {}) {
   }
 }
 
+/** "cada 30 minuts", "cada hora", "cada 7 dies"… */
+export function intervalText() {
+  const { every, unit } = data.settings.backup;
+  const info = backupUnit(unit);
+  return every === 1 ? `cada ${info.one}` : `cada ${every} ${info.label}`;
+}
+
 export function backupStatusText() {
-  const { mode, everyChanges, everyDays, changesSince, lastExportAt } = data.settings.backup;
-  const last = lastExportAt ? `Darrera còpia: ${formatDateTime(lastExportAt)}.` : 'Encara no s\'ha fet cap còpia.';
-  if (mode === 'changes') return `${last} Se\'n farà una altra al cap de ${everyChanges} canvis (${changesSince} fets).`;
-  if (mode === 'time') return `${last} Se\'n farà una altra cada ${everyDays} dies.`;
+  const { mode, everyChanges, changesSince, lastExportAt } = data.settings.backup;
+  const last = lastExportAt
+    ? `Darrera còpia: ${formatDateTime(lastExportAt)}.`
+    : 'Encara no s\'ha fet cap còpia.';
+  if (mode === 'changes') {
+    return `${last} Se'n proposarà una altra al cap de ${everyChanges} canvis (${changesSince} fets).`;
+  }
+  if (mode === 'time') return `${last} Se'n proposarà una altra ${intervalText()}.`;
   return `${last} Les còpies automàtiques estan desactivades.`;
 }

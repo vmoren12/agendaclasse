@@ -1,5 +1,5 @@
 /**
- * Pissarra — agenda de classe.
+ * Agendari — agenda de classe.
  * Punt d'entrada: connecta estat, vistes i diàlegs, i engega la PWA.
  */
 
@@ -147,7 +147,7 @@ function initPwa() {
   });
   window.addEventListener('appinstalled', () => {
     installPrompt = null;
-    toast('Pissarra instal·lada. Ja la pots obrir com una app.');
+    toast('Agendari instal·lat. Ja el pots obrir com una app.');
   });
 }
 
@@ -188,6 +188,12 @@ function init() {
 
   initPwa();
   setTimeout(() => checkScheduledBackup(), 1500);
+
+  // Les còpies programades per temps poden vèncer amb l'app oberta.
+  setInterval(() => checkScheduledBackup(), 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) checkScheduledBackup();
+  });
 }
 
 init();

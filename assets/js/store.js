@@ -7,11 +7,25 @@
 
 import { isDateKey } from './dates.js';
 
-const STORAGE_KEY = 'pissarra.data.v2';
-const LEGACY_KEY = 'classAgenda_entries_v1';
+const STORAGE_KEY = 'agendari.data.v2';
+// Claus d'anteriors versions de l'app, per no perdre res en actualitzar.
+const LEGACY_KEYS = ['pissarra.data.v2'];
+const LEGACY_ENTRIES_KEY = 'classAgenda_entries_v1';
 
-export const APP_NAME = 'Pissarra';
+export const APP_NAME = 'Agendari';
 export const DATA_VERSION = 2;
+
+/** Unitats disponibles per a les copies automatiques per temps. */
+export const BACKUP_UNITS = [
+  { id: 'minutes', label: 'minuts', one: 'minut', ms: 60 * 1000, max: 1440 },
+  { id: 'hours', label: 'hores', one: 'hora', ms: 60 * 60 * 1000, max: 240 },
+  { id: 'days', label: 'dies', one: 'dia', ms: 24 * 60 * 60 * 1000, max: 365 },
+  { id: 'weeks', label: 'setmanes', one: 'setmana', ms: 7 * 24 * 60 * 60 * 1000, max: 52 },
+];
+
+export function backupUnit(id) {
+  return BACKUP_UNITS.find((u) => u.id === id) || BACKUP_UNITS[2];
+}
 
 export const TYPES = [
   { id: 'tasca', label: 'Tasca', checkable: true },
@@ -58,7 +72,8 @@ function defaultSettings() {
     backup: {
       mode: 'off', // off | changes | time
       everyChanges: 25,
-      everyDays: 7,
+      every: 7, // quantitat d'unitats entre copies
+      unit: 'days', // minutes | hours | days | weeks
       changesSince: 0,
       lastExportAt: null,
     },
@@ -132,7 +147,14 @@ export function sanitizeData(raw) {
   if (!VIEWS.includes(settings.defaultView)) settings.defaultView = 'month';
   if (!['off', 'changes', 'time'].includes(settings.backup.mode)) settings.backup.mode = 'off';
   settings.backup.everyChanges = clampInt(settings.backup.everyChanges, 1, 999, 25);
-  settings.backup.everyDays = clampInt(settings.backup.everyDays, 1, 365, 7);
+  // Versions anteriors nomes comptaven dies.
+  if (settings.backup.everyDays !== undefined && raw.settings?.backup?.every === undefined) {
+    settings.backup.every = settings.backup.everyDays;
+    settings.backup.unit = 'days';
+  }
+  delete settings.backup.everyDays;
+  if (!BACKUP_UNITS.some((u) => u.id === settings.backup.unit)) settings.backup.unit = 'days';
+  settings.backup.every = clampInt(settings.backup.every, 1, backupUnit(settings.backup.unit).max, 7);
   settings.backup.changesSince = clampInt(settings.backup.changesSince, 0, 99999, 0);
   if (!Number.isFinite(settings.backup.lastExportAt)) settings.backup.lastExportAt = null;
 
@@ -159,11 +181,13 @@ function clampInt(value, min, max, fallback) {
 /* ------------------------------ Persistència ----------------------------- */
 
 function readStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return sanitizeData(JSON.parse(raw));
-  } catch (err) {
-    console.warn('No s\'han pogut llegir les dades desades:', err);
+  for (const key of [STORAGE_KEY, ...LEGACY_KEYS]) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) return sanitizeData(JSON.parse(raw));
+    } catch (err) {
+      console.warn(`No s'han pogut llegir les dades de ${key}:`, err);
+    }
   }
   return migrateLegacy();
 }
@@ -171,7 +195,7 @@ function readStorage() {
 /** Recupera les entrades de la primera versió de l'agenda, si n'hi ha. */
 function migrateLegacy() {
   try {
-    const raw = localStorage.getItem(LEGACY_KEY);
+    const raw = localStorage.getItem(LEGACY_ENTRIES_KEY);
     if (!raw) return defaultData();
     const legacy = JSON.parse(raw);
     if (!Array.isArray(legacy) || legacy.length === 0) return defaultData();

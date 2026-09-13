@@ -220,6 +220,13 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   transition:border-color .15s ease,background .15s ease;
 }
 .round-btn:hover{border-color:var(--ink);background:var(--surface-2);}
+.round-btn.gear{width:44px;height:44px;}
+.round-btn svg{
+  width:20px;height:20px;
+  fill:none;stroke:currentColor;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.round-btn.gear:hover svg{transform:rotate(25deg);transition:transform .2s ease;}
 .pill-btn{
   background:transparent;
   border:1.5px solid var(--line-strong);
@@ -619,6 +626,9 @@ dialog::backdrop{background:var(--overlay);}
   min-height:var(--tap);
 }
 .field textarea{resize:vertical;min-height:76px;}
+.input-pair{display:flex;gap:8px;}
+.input-pair input{flex:1 1 90px;min-width:0;}
+.input-pair select{flex:1 1 130px;min-width:0;}
 .field .hint{font-size:.78rem;color:var(--ink-faint);margin-top:5px;}
 
 .chip-row{display:flex;gap:8px;flex-wrap:wrap;}
@@ -705,18 +715,39 @@ dialog::backdrop{background:var(--overlay);}
   min-height:36px;
 }
 .subject-row input[type=text]:hover{border-color:var(--line-strong);}
-.subject-row input[type=color]{
-  width:34px;height:34px;
+input[type="color"]{
+  -webkit-appearance:none;
+  appearance:none;
   border:1px solid var(--line-strong);
   border-radius:50%;
   padding:0;
-  background:transparent;
-  flex:none;
+  background:none;
+  overflow:hidden;
   cursor:pointer;
 }
+input[type="color"]::-webkit-color-swatch-wrapper{padding:0;}
+input[type="color"]::-webkit-color-swatch{border:none;border-radius:50%;}
+input[type="color"]::-moz-color-swatch{border:none;border-radius:50%;}
+.subject-row input[type="color"]{width:34px;height:34px;flex:none;}
 .subject-row .count{font-size:.76rem;color:var(--ink-faint);flex:none;}
 
 .stack{display:flex;flex-direction:column;gap:10px;}
+.choice{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  text-align:left;
+  background:var(--surface);
+  border:1.5px solid var(--line-strong);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  transition:border-color .15s ease,background .15s ease;
+}
+.choice:hover{border-color:var(--ink);background:var(--surface-2);}
+.choice-title{font-weight:600;font-size:1rem;}
+.choice-desc{font-size:.85rem;color:var(--ink-soft);line-height:1.35;}
+.choice.danger:hover{border-color:var(--t-data);}
+.choice.danger .choice-title{color:var(--t-data);}
 .mt-10{margin-top:10px;}
 .my-12{margin:12px 0;}
 .row-inline{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}

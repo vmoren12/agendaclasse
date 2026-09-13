@@ -1,5 +1,5 @@
 /**
- * Service worker de Pissarra.
+ * Service worker d'Agendari.
  *
  * Estratègia:
  *  - navegacions: xarxa primer (per veure els canvis publicats) i, si no hi ha
@@ -9,7 +9,7 @@
  * En publicar canvis cal pujar CACHE_VERSION perquè els clients es refresquin.
  */
 
-const CACHE_VERSION = 'pissarra-v1';
+const CACHE_VERSION = 'agendari-v2';
 const PRECACHE = [
   './',
   './index.html',
