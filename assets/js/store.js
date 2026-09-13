@@ -77,6 +77,12 @@ function defaultSettings() {
       changesSince: 0,
       lastExportAt: null,
     },
+    publish: {
+      classId: null, // identificador public i no endevinable de la classe
+      repo: null, // "usuari/repositori"; si es buit, es dedueix de l'URL
+      lastPublishedAt: null,
+      lastSignature: null, // empremta del contingut publicat
+    },
   };
 }
 
@@ -95,6 +101,14 @@ export function newId(prefix = 'e') {
 }
 
 /* ------------------------------ Sanejament ------------------------------- */
+
+export function isClassId(value) {
+  return typeof value === 'string' && /^[a-z0-9][a-z0-9-]{2,59}$/.test(value);
+}
+
+export function isRepoName(value) {
+  return typeof value === 'string' && /^[\w.-]{1,100}\/[\w.-]{1,100}$/.test(value);
+}
 
 function isHexColor(value) {
   return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
@@ -157,6 +171,12 @@ export function sanitizeData(raw) {
   settings.backup.every = clampInt(settings.backup.every, 1, backupUnit(settings.backup.unit).max, 7);
   settings.backup.changesSince = clampInt(settings.backup.changesSince, 0, 99999, 0);
   if (!Number.isFinite(settings.backup.lastExportAt)) settings.backup.lastExportAt = null;
+
+  settings.publish = { ...base.settings.publish, ...((raw.settings || {}).publish || {}) };
+  if (!isClassId(settings.publish.classId)) settings.publish.classId = null;
+  if (!isRepoName(settings.publish.repo)) settings.publish.repo = null;
+  if (!Number.isFinite(settings.publish.lastPublishedAt)) settings.publish.lastPublishedAt = null;
+  if (typeof settings.publish.lastSignature !== 'string') settings.publish.lastSignature = null;
 
   const subjectIds = new Set();
   const subjects = Array.isArray(raw.subjects)
@@ -221,8 +241,37 @@ function notify(detail = {}) {
   listeners.forEach((listener) => listener(detail));
 }
 
+/**
+ * Mode alumne: les entrades i matèries venen d'una classe publicada i no s'han
+ * de desar mai a l'agenda local de qui la consulta.
+ */
+let readOnly = false;
+
+export function isReadOnly() {
+  return readOnly;
+}
+
+/** Carrega en memòria les dades d'una classe publicada, sense tocar les locals. */
+export function usePublishedDataset(raw) {
+  const clean = sanitizeData({ subjects: raw?.subjects, entries: raw?.entries });
+  readOnly = true;
+  data.subjects = clean.subjects;
+  data.entries = clean.entries;
+  notify({ reason: 'published' });
+}
+
 function persist() {
   try {
+    if (readOnly) {
+      // Només les preferències: l'agenda desada en aquest navegador no es toca.
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      stored.version = DATA_VERSION;
+      stored.settings = data.settings;
+      if (!Array.isArray(stored.subjects)) stored.subjects = [];
+      if (!Array.isArray(stored.entries)) stored.entries = [];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+      return true;
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     return true;
   } catch (err) {
@@ -265,6 +314,8 @@ export function compareEntries(a, b) {
 }
 
 export function addEntry(values) {
+  if (readOnly) return null;
+
   const entry = {
     id: newId('e'),
     date: values.date,
@@ -282,6 +333,8 @@ export function addEntry(values) {
 }
 
 export function updateEntry(id, values) {
+  if (readOnly) return null;
+
   const entry = getEntry(id);
   if (!entry) return null;
   Object.assign(entry, values, { updatedAt: Date.now() });
@@ -290,12 +343,16 @@ export function updateEntry(id, values) {
 }
 
 export function deleteEntry(id) {
+  if (readOnly) return;
+
   const before = data.entries.length;
   data.entries = data.entries.filter((e) => e.id !== id);
   if (data.entries.length !== before) commit();
 }
 
 export function toggleDone(id) {
+  if (readOnly) return;
+
   const entry = getEntry(id);
   if (!entry) return;
   entry.done = !entry.done;
@@ -320,6 +377,8 @@ export function countEntriesBySubject(subjectId) {
 }
 
 export function addSubject(name = 'Matèria nova', color) {
+  if (readOnly) return null;
+
   const used = new Set(data.subjects.map((s) => s.color));
   const nextColor = color || PALETTE.find((c) => !used.has(c)) || PALETTE[0];
   const subject = { id: newId('s'), name, color: nextColor };
@@ -329,6 +388,8 @@ export function addSubject(name = 'Matèria nova', color) {
 }
 
 export function updateSubject(id, values) {
+  if (readOnly) return;
+
   const subject = getSubject(id);
   if (!subject) return;
   Object.assign(subject, values);
@@ -336,6 +397,8 @@ export function updateSubject(id, values) {
 }
 
 export function deleteSubject(id) {
+  if (readOnly) return;
+
   data.subjects = data.subjects.filter((s) => s.id !== id);
   data.entries.forEach((e) => {
     if (e.subjectId === id) e.subjectId = null;
@@ -356,6 +419,17 @@ export function updateBackupSettings(patch) {
 }
 
 /** Marca que s'acaba de fer una còpia: reinicia comptadors. */
+export function markPublished(signature, timestamp = Date.now()) {
+  data.settings.publish.lastSignature = signature;
+  data.settings.publish.lastPublishedAt = timestamp;
+  commit({ countsAsChange: false, reason: 'publish' });
+}
+
+export function updatePublishSettings(patch) {
+  Object.assign(data.settings.publish, patch);
+  commit({ countsAsChange: false, reason: 'publish' });
+}
+
 export function markBackupDone(timestamp = Date.now()) {
   data.settings.backup.lastExportAt = timestamp;
   data.settings.backup.changesSince = 0;
@@ -365,6 +439,8 @@ export function markBackupDone(timestamp = Date.now()) {
 /* --------------------------- Importació / esborrat ----------------------- */
 
 export function replaceAll(incoming) {
+  if (readOnly) return { entries: 0, subjects: 0 };
+
   const clean = sanitizeData(incoming);
   data.settings = clean.settings;
   data.subjects = clean.subjects;
@@ -378,6 +454,8 @@ export function replaceAll(incoming) {
  * nom i les entrades repetides es queden amb la versió modificada més tard.
  */
 export function mergeAll(incoming) {
+  if (readOnly) return { added: 0, updated: 0, addedSubjects: 0 };
+
   const clean = sanitizeData(incoming);
 
   const byName = new Map(data.subjects.map((s) => [s.name.toLowerCase(), s]));
@@ -415,6 +493,8 @@ export function mergeAll(incoming) {
 }
 
 export function clearEntries() {
+  if (readOnly) return;
+
   data.entries = [];
   commit({ countsAsChange: false, reason: 'clear' });
 }

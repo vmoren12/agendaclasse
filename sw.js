@@ -9,7 +9,7 @@
  * En publicar canvis cal pujar CACHE_VERSION perquè els clients es refresquin.
  */
 
-const CACHE_VERSION = 'agendari-v2';
+const CACHE_VERSION = 'agendari-v3';
 const PRECACHE = [
   './',
   './index.html',
@@ -17,6 +17,9 @@ const PRECACHE = [
   './assets/css/styles.css',
   './assets/js/app.js',
   './assets/js/backup.js',
+  './assets/js/classfeed.js',
+  './assets/js/ics.js',
+  './assets/js/publish.js',
   './assets/js/dates.js',
   './assets/js/dialogs.js',
   './assets/js/dom.js',
@@ -55,6 +58,22 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // Les classes publicades han de ser sempre les més recents que hi hagi.
+  if (url.pathname.includes('/classes/')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request)),
+    );
+    return;
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith(

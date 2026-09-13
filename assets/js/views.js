@@ -10,7 +10,7 @@ import {
   fromKey, isSameDay, mondayOf, toKey, today,
 } from './dates.js';
 import {
-  TYPE_LABELS, TYPES, compareEntries, data, entriesOn, entryColor, getSubject,
+  TYPE_LABELS, TYPES, compareEntries, data, entriesOn, entryColor, getSubject, isReadOnly,
 } from './store.js';
 
 const MAX_PILLS = 3;
@@ -52,13 +52,20 @@ export function entryCard(entry) {
   });
 
   if (checkableTypes.has(entry.type)) {
-    card.append(el('button', {
-      class: 'check',
-      type: 'button',
-      'aria-pressed': String(Boolean(entry.done)),
-      'aria-label': entry.done ? `Desmarcar "${entry.title}"` : `Marcar "${entry.title}" com a feta`,
-      onClick: () => actions.toggleDone(entry.id),
-    }));
+    card.append(isReadOnly()
+      ? el('span', {
+        class: 'check',
+        dataset: { done: String(Boolean(entry.done)) },
+        role: 'img',
+        'aria-label': entry.done ? 'Feta' : 'Pendent',
+      })
+      : el('button', {
+        class: 'check',
+        type: 'button',
+        'aria-pressed': String(Boolean(entry.done)),
+        'aria-label': entry.done ? `Desmarcar "${entry.title}"` : `Marcar "${entry.title}" com a feta`,
+        onClick: () => actions.toggleDone(entry.id),
+      }));
   }
 
   const top = el('div', { class: 'entry-top-row' }, [
@@ -71,14 +78,16 @@ export function entryCard(entry) {
   if (entry.notes) main.append(el('p', { class: 'entry-notes', text: entry.notes }));
   card.append(main);
 
-  card.append(el('div', { class: 'entry-actions' }, [
-    el('button', {
-      class: 'icon-btn',
-      type: 'button',
-      'aria-label': `Editar "${entry.title}"`,
-      onClick: () => actions.openEntry(entry.id),
-    }, [editIcon(), el('span', { text: 'Editar' })]),
-  ]));
+  if (!isReadOnly()) {
+    card.append(el('div', { class: 'entry-actions' }, [
+      el('button', {
+        class: 'icon-btn',
+        type: 'button',
+        'aria-label': `Editar "${entry.title}"`,
+        onClick: () => actions.openEntry(entry.id),
+      }, [editIcon(), el('span', { text: 'Editar' })]),
+    ]));
+  }
 
   return card;
 }
@@ -129,16 +138,18 @@ function renderWeek(refDate) {
         type: 'button',
         style: `--c:${entryColor(entry)}`,
         text: entry.title,
-        onClick: () => actions.openEntry(entry.id),
+        onClick: () => (isReadOnly() ? actions.goToDay(day) : actions.openEntry(entry.id)),
       }));
     });
-    body.append(el('button', {
-      class: 'add-in-cell',
-      type: 'button',
-      text: '+ afegir',
-      'aria-label': `Afegir una entrada el ${formatShort(day)}`,
-      onClick: () => actions.newEntry(toKey(day)),
-    }));
+    if (!isReadOnly()) {
+      body.append(el('button', {
+        class: 'add-in-cell',
+        type: 'button',
+        text: '+ afegir',
+        'aria-label': `Afegir una entrada el ${formatShort(day)}`,
+        onClick: () => actions.newEntry(toKey(day)),
+      }));
+    }
 
     col.append(body);
     grid.append(col);
@@ -172,7 +183,7 @@ function renderMonth(refDate) {
         onClick: () => actions.goToDay(day),
       }),
       el('span', { class: 'cell-num', text: String(day.getDate()) }),
-      el('button', {
+      isReadOnly() ? null : el('button', {
         class: 'cell-add',
         type: 'button',
         text: '+',

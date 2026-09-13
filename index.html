@@ -58,6 +58,17 @@
     amb un servidor local, per exemple <code>python -m http.server</code>.
   </p>
 
+  <div class="class-banner" id="classBanner" hidden>
+    <div class="class-banner-text">
+      <strong>Vista d'alumne</strong>
+      <span id="classBannerTime">Carregant…</span>
+    </div>
+    <div class="class-banner-actions">
+      <button type="button" class="pill-btn small" id="btnRefreshClass">Actualitzar</button>
+      <button type="button" class="pill-btn small" id="btnCalendar">Afegir al calendari</button>
+    </div>
+  </div>
+
   <nav class="nav" aria-label="Vistes i període">
     <div class="views" id="viewSwitch" role="group" aria-label="Canviar de vista">
       <button type="button" data-view="day">Dia</button>
@@ -160,7 +171,7 @@
     <h2 id="settingsTitle">Configuració</h2>
     <p class="sheet-sub">Els canvis es desen automàticament.</p>
 
-    <section class="settings-section">
+    <section class="settings-section" id="sectionClass">
       <h3>Classe</h3>
       <div class="field">
         <label for="setClassName">Nom de la classe</label>
@@ -188,7 +199,7 @@
       </div>
     </section>
 
-    <section class="settings-section">
+    <section class="settings-section" id="sectionSubjects">
       <h3>Matèries</h3>
       <p class="hint">Cada matèria té el seu color: les entrades que la facin servir es pintaran igual a totes les vistes.</p>
       <div class="subject-rows" id="subjectRows"></div>
@@ -196,7 +207,7 @@
       <datalist id="paletteList"></datalist>
     </section>
 
-    <section class="settings-section">
+    <section class="settings-section" id="sectionBackup">
       <h3>Còpies de seguretat</h3>
       <p class="hint">L'agenda es desa en aquest navegador. Exporta-la per guardar-la o passar-la a un altre dispositiu.</p>
       <div class="chip-row my-12">
@@ -228,11 +239,47 @@
       <p class="hint" id="backupStatus"></p>
     </section>
 
-    <section class="settings-section">
+    <section class="settings-section" id="sectionPublish">
+      <h3>Publicar per als alumnes</h3>
+      <p class="hint">
+        Publica una còpia de només lectura al mateix repositori del web. Els alumnes
+        l'obren amb un enllaç, sense instal·lar ni importar res, i també se la poden
+        subscriure al calendari del mòbil.
+      </p>
+      <div class="field" style="margin-top:12px;">
+        <label for="setToken">Testimoni de GitHub</label>
+        <input type="password" id="setToken" placeholder="github_pat_…" autocomplete="off" spellcheck="false">
+        <p class="hint">
+          Fes-ne un de <em>fine-grained</em> limitat a aquest repositori amb permís
+          «Contents: Read and write». Es desa només en aquest navegador i només
+          s'envia a GitHub. <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Crear-ne un</a>.
+        </p>
+      </div>
+      <div class="row-inline">
+        <div class="field">
+          <label for="setRepo">Repositori</label>
+          <input type="text" id="setRepo" placeholder="usuari/repositori" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="setClassId">Identificador de la classe</label>
+          <input type="text" id="setClassId" placeholder="6eb-a7f3k2" spellcheck="false">
+        </div>
+      </div>
+      <div class="chip-row my-12">
+        <button type="button" class="btn primary small" id="btnPublish">Publicar ara</button>
+        <button type="button" class="btn ghost small" id="btnCopyLink">Copiar l'enllaç</button>
+        <button type="button" class="btn ghost small" id="btnShowCalendar">Calendari</button>
+        <button type="button" class="btn ghost small" id="btnForgetToken">Treure el testimoni</button>
+      </div>
+      <p class="hint" id="publishStatus"></p>
+    </section>
+
+    <section class="settings-section" id="sectionData">
       <h3>Dades</h3>
       <div class="chip-row">
         <button type="button" class="btn ghost small" id="btnInstall" hidden>Instal·lar l'app</button>
         <button type="button" class="btn danger small" id="btnClearEntries">Esborrar totes les entrades</button>
+        <button type="button" class="btn ghost small" id="btnLeaveClass" hidden>Sortir de la vista d'alumne</button>
       </div>
       <p class="hint">Dreceres de teclat: <kbd>N</kbd> nova entrada · <kbd>T</kbd> avui · <kbd>←</kbd> <kbd>→</kbd> canviar de període · <kbd>1</kbd>–<kbd>5</kbd> canviar de vista.</p>
     </section>
@@ -263,6 +310,40 @@
     <div class="sheet-actions">
       <div class="right">
         <button type="button" class="btn ghost" id="btnCancelImport">Cancel·lar</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<!-- --------------------------- Diàleg del calendari ----------------------- -->
+<dialog id="calendarDialog" aria-labelledby="calendarTitle">
+  <div class="sheet">
+    <h2 id="calendarTitle">Afegir al calendari</h2>
+    <p class="sheet-sub">
+      En subscriure't, les entrades apareixen al teu calendari i s'actualitzen soles
+      quan el professor publica canvis.
+    </p>
+    <div class="field">
+      <label for="calendarUrlField">Adreça del calendari</label>
+      <input type="text" id="calendarUrlField" readonly spellcheck="false">
+    </div>
+    <div class="stack">
+      <a class="choice" id="calendarGoogle" href="#" target="_blank" rel="noopener">
+        <span class="choice-title">Google Calendar</span>
+        <span class="choice-desc">S'obre amb l'adreça posada: només cal confirmar. Google comprova els canvis unes quantes vegades al dia.</span>
+      </a>
+      <a class="choice" id="calendarApple" href="#">
+        <span class="choice-title">iPhone, iPad o Mac</span>
+        <span class="choice-desc">Obre l'app Calendari i afegeix la subscripció. Allà pots triar cada quant es refresca.</span>
+      </a>
+      <button type="button" class="choice" id="calendarCopy">
+        <span class="choice-title">Copiar l'adreça</span>
+        <span class="choice-desc">Per enganxar-la a qualsevol altra aplicació de calendari.</span>
+      </button>
+    </div>
+    <div class="sheet-actions">
+      <div class="right">
+        <button type="button" class="btn ghost" id="btnCloseCalendar">Tancar</button>
       </div>
     </div>
   </div>

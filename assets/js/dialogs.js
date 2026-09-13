@@ -7,11 +7,17 @@ import { $, $$, clear, el } from './dom.js';
 import { formatShort, fromKey, toKey, today } from './dates.js';
 import {
   ACCENTS, BACKUP_UNITS, PALETTE, TYPES, VIEWS, addEntry, addSubject, backupUnit,
-  countEntriesBySubject, data, deleteEntry, deleteSubject, getEntry, subscribe,
-  updateEntry, updateSettings, updateBackupSettings, updateSubject, clearEntries,
+  countEntriesBySubject, data, deleteEntry, deleteSubject, getEntry, isClassId,
+  isReadOnly, isRepoName, subscribe, updateEntry, updateSettings, updateBackupSettings,
+  updatePublishSettings, updateSubject, clearEntries,
 } from './store.js';
 import { applyTheme } from './theme.js';
 import { applyImport, backupStatusText, exportNow, readBackupFile } from './backup.js';
+import {
+  calendarUrl, currentRepo, getToken, googleCalendarUrl, hasToken, hasUnpublishedChanges,
+  publishClass, setToken, studentUrl, suggestClassId, webcalUrl,
+} from './publish.js';
+import { formatDateTime } from './dates.js';
 import { toast } from './toast.js';
 
 const VIEW_LABELS = {
@@ -25,6 +31,8 @@ export function initDialogs(options = {}) {
   initEntryDialog();
   initSettingsDialog();
   initImportDialog();
+  initPublishSection();
+  initCalendarDialog();
 }
 
 /* ---------------------------- Diàleg d'entrada ---------------------------- */
@@ -239,13 +247,152 @@ function renderBackupFields() {
 }
 
 function renderSettings() {
-  $('#setClassName').value = data.settings.className;
-  $('#setDefaultView').value = data.settings.defaultView;
+  const student = isReadOnly();
+
+  // En mode alumne només té sentit l'aparença.
+  ['#sectionClass', '#sectionSubjects', '#sectionBackup', '#sectionPublish'].forEach((id) => {
+    $(id).hidden = student;
+  });
+  $('#btnClearEntries').hidden = student;
+  $('#btnLeaveClass').hidden = !student;
+  $('#btnInstall').hidden = !hooks.canInstall?.();
+
   renderThemeChips();
   renderAccentSwatches();
+  if (student) return;
+
+  $('#setClassName').value = data.settings.className;
+  $('#setDefaultView').value = data.settings.defaultView;
   renderSubjectRows();
   renderBackupFields();
-  $('#btnInstall').hidden = !hooks.canInstall?.();
+  renderPublishFields();
+}
+
+/* ---------------------- Publicació per als alumnes ------------------------ */
+
+function renderPublishFields() {
+  const { classId, lastPublishedAt } = data.settings.publish;
+  $('#setToken').value = hasToken() ? '\u2022'.repeat(16) : '';
+  $('#setRepo').value = currentRepo() || '';
+  $('#setClassId').value = classId || '';
+
+  const ready = hasToken() && Boolean(classId) && Boolean(currentRepo());
+  $('#btnPublish').disabled = !ready;
+  $('#btnCopyLink').disabled = !classId;
+  $('#btnShowCalendar').disabled = !classId;
+  $('#btnForgetToken').hidden = !hasToken();
+
+  const status = [];
+  if (!hasToken()) status.push('Falta el testimoni de GitHub.');
+  else if (!classId) status.push("Falta l'identificador de la classe.");
+  if (lastPublishedAt) {
+    status.push(`Darrera publicació: ${formatDateTime(lastPublishedAt)}.`);
+    status.push(hasUnpublishedChanges()
+      ? 'Hi ha canvis sense publicar.'
+      : "Tot el que hi ha a l'agenda ja està publicat.");
+    status.push(`Enllaç dels alumnes: ${studentUrl()}`);
+  } else if (ready) {
+    status.push("Encara no s'ha publicat res.");
+  }
+  $('#publishStatus').textContent = status.join(' ');
+}
+
+async function copyText(text, message) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(message);
+  } catch {
+    window.prompt('Copia aquesta adreça:', text);
+  }
+}
+
+function initPublishSection() {
+  $('#setToken').addEventListener('change', (event) => {
+    const value = event.target.value.trim();
+    if (!value || value.startsWith('\u2022')) return;
+    setToken(value);
+    if (!data.settings.publish.classId) {
+      updatePublishSettings({ classId: suggestClassId(data.settings.className) });
+    }
+    renderPublishFields();
+    toast('Testimoni desat en aquest navegador.');
+  });
+
+  $('#setRepo').addEventListener('change', (event) => {
+    const value = event.target.value.trim();
+    if (value && !isRepoName(value)) {
+      toast("El repositori s'escriu «usuari/repositori».");
+      renderPublishFields();
+      return;
+    }
+    updatePublishSettings({ repo: value || null });
+    renderPublishFields();
+  });
+
+  $('#setClassId').addEventListener('change', (event) => {
+    const value = event.target.value.trim().toLowerCase();
+    if (value && !isClassId(value)) {
+      toast("L'identificador només admet lletres minúscules, xifres i guions.");
+      renderPublishFields();
+      return;
+    }
+    updatePublishSettings({ classId: value || null });
+    renderPublishFields();
+  });
+
+  $('#btnPublish').addEventListener('click', async () => {
+    const button = $('#btnPublish');
+    button.disabled = true;
+    button.textContent = 'Publicant…';
+    try {
+      const result = await publishClass();
+      toast(`Publicades ${result.entries} entrades. Els alumnes ho veuran d'aquí a un minut.`);
+    } catch (err) {
+      toast(err.message || "No s'ha pogut publicar.");
+    } finally {
+      button.textContent = 'Publicar ara';
+      renderPublishFields();
+    }
+  });
+
+  $('#btnCopyLink').addEventListener('click', () => {
+    copyText(studentUrl(), "Enllaç copiat. Ja el pots passar als alumnes.");
+  });
+
+  $('#btnShowCalendar').addEventListener('click', () => {
+    openCalendarDialog(data.settings.publish.classId);
+  });
+
+  $('#btnForgetToken').addEventListener('click', () => {
+    if (!window.confirm("Vols treure el testimoni d'aquest navegador? Hauràs de tornar-lo a escriure per publicar.")) return;
+    setToken('');
+    renderPublishFields();
+    toast('Testimoni esborrat.');
+  });
+
+  $('#btnLeaveClass').addEventListener('click', () => hooks.leaveClass?.());
+}
+
+/* --------------------------- Diàleg del calendari ------------------------- */
+
+export function openCalendarDialog(classId) {
+  if (!classId) return;
+  $('#calendarUrlField').value = calendarUrl(classId);
+  $('#calendarGoogle').href = googleCalendarUrl(classId);
+  $('#calendarApple').href = webcalUrl(classId);
+  $('#calendarDialog').showModal();
+}
+
+function initCalendarDialog() {
+  const dialog = $('#calendarDialog');
+  $('#btnCloseCalendar').addEventListener('click', () => dialog.close());
+  $('#calendarCopy').addEventListener('click', () => {
+    copyText($('#calendarUrlField').value, 'Adreça del calendari copiada.');
+  });
+  $('#calendarUrlField').addEventListener('focus', (event) => event.target.select());
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
 }
 
 /* ------------------------- Diàleg d'importació ---------------------------- */

@@ -82,6 +82,20 @@ export function formatShort(date) {
   return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+/** "fa un moment", "fa 5 minuts", "fa 3 hores", "ahir"... */
+export function timeAgo(timestamp) {
+  const seconds = Math.round((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return 'ara mateix';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return minutes === 1 ? 'fa un minut' : `fa ${minutes} minuts`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return hours === 1 ? 'fa una hora' : `fa ${hours} hores`;
+  const days = Math.round(hours / 24);
+  if (days === 1) return 'ahir';
+  if (days < 30) return `fa ${days} dies`;
+  return `el ${formatDateTime(timestamp)}`;
+}
+
 export function formatDateTime(timestamp) {
   const d = new Date(timestamp);
   const hh = String(d.getHours()).padStart(2, '0');

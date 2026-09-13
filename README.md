@@ -18,6 +18,11 @@ servidors: les dades es desen al dispositiu i es poden exportar quan vulguis.
 - **Còpies de seguretat**: exportació i importació en JSON; en importar,
   l'app pregunta si vols combinar o substituir. Es poden programar còpies
   automàtiques **cada X canvis** o **cada X minuts, hores, dies o setmanes**.
+- **Publicació per als alumnes**: amb un botó, l'agenda es publica en només
+  lectura i els alumnes la veuen des de casa amb un enllaç, sense instal·lar ni
+  importar res.
+- **Calendari subscribible**: la mateixa publicació genera un `.ics` que es pot
+  subscriure al calendari del mòbil.
 - **PWA**: es pot instal·lar al mòbil o a l'escriptori i funciona sense connexió.
 - **Accessible i responsive**: teclat, lectors de pantalla, mòbil i escriptori.
 
@@ -30,6 +35,72 @@ servidors: les dades es desen al dispositiu i es poden exportar quan vulguis.
 | `←` / `→` | Període anterior / següent |
 | `1` … `5` | Dia, setmana, mes, any, agenda |
 | `Esc` | Tancar el diàleg obert |
+
+### Paràmetres de l'adreça
+
+| Paràmetre | Què fa |
+| --- | --- |
+| `?c=<classe>` | Obre la vista d'alumne d'una classe publicada |
+| `?mode=teacher` | Torna a la teva agenda si el navegador recorda una classe |
+| `?view=day` · `?date=2026-09-15` · `?action=new` | Punts d'entrada de les dreceres de la PWA |
+
+## Compartir l'agenda amb els alumnes
+
+L'app té dos modes. En **mode docent** edites la teva agenda i la publiques; en
+**mode alumne** (l'enllaç acaba amb `?c=…`) només es llegeix, i les dades locals
+de qui la consulta no es toquen mai.
+
+### Preparar-ho (una sola vegada)
+
+1. Crea un testimoni a GitHub: *Settings › Developer settings › Personal access
+   tokens › Fine-grained tokens*. Limita'l a aquest repositori i dóna-li el
+   permís **Contents: Read and write**. Posa-li una caducitat (per exemple, el
+   final del curs).
+2. A l'app: **Configuració › Publicar per als alumnes**, enganxa el testimoni.
+   L'identificador de la classe es genera sol, amb una part aleatòria perquè
+   l'enllaç no es pugui endevinar.
+3. Prem **Publicar ara** i copia l'enllaç dels alumnes.
+
+El testimoni es desa només en aquest navegador i només s'envia a GitHub. No surt
+mai als fitxers exportats. Si fas servir un ordinador compartit, treu-lo amb
+*Treure el testimoni* quan acabis.
+
+### El dia a dia
+
+Escrius a l'agenda com sempre i, quan vulguis que ho vegin, prems **Publicar
+ara**: mentrestant pots preparar coses sense que surtin publicades. La secció de
+configuració avisa si hi ha canvis pendents de publicar. Cada publicació escriu
+`classes/<identificador>.json` i `classes/<identificador>.ics` al repositori i el
+web es refresca en un minut aproximadament.
+
+### Què veuen els alumnes
+
+Obren l'enllaç i hi troben l'agenda sencera, amb els colors de les matèries i el
+que ja està fet, però sense poder editar res. L'app es recorda de la classe, de
+manera que l'endemà n'hi ha prou d'obrir-la (o instal·lar-la com a app). Es
+refresca en obrir-la, en tornar-hi i amb el botó **Actualitzar**; quan no hi ha
+connexió, es veu l'última còpia baixada.
+
+### Calendari
+
+El botó **Afegir al calendari** dóna l'adreça del `.ics`:
+
+- **Google Calendar**: l'enllaç l'obre preparat; només cal confirmar. Google
+  comprova els calendaris externs unes quantes vegades al dia, no a l'instant.
+- **iPhone, iPad o Mac**: l'enllaç `webcal://` obre l'app Calendari, on es pot
+  triar cada quant es refresca.
+- Qualsevol altra aplicació: copiar l'adreça i afegir-la com a calendari per URL.
+
+El calendari és un complement: per veure els canvis al moment, l'enllaç de l'app
+sempre va més ràpid.
+
+### Privacitat
+
+Els fitxers publicats són accessibles per a qui tingui l'enllaç, encara que
+l'adreça no es pugui endevinar i no aparegui enlloc. Per això a l'agenda no hi ha
+d'haver mai dades personals d'alumnes: tasques, dates i material, sí; noms,
+notes o incidències, no. Amb aquest ús no es tracten dades personals i no calen
+comptes ni consentiments.
 
 ## Les teves dades
 
@@ -80,12 +151,16 @@ index.html               Estructura de la pàgina i els dos diàlegs
 manifest.webmanifest     Metadades de la PWA
 sw.js                    Service worker (funcionament sense connexió)
 assets/css/styles.css    Estils, tokens de tema i responsive
+classes/                 Classes publicades (JSON + calendari .ics)
 assets/js/
   app.js                 Punt d'entrada: estat de la interfície i connexions
   store.js               Dades, validació, persistència i esdeveniments
   views.js               Dibuix de les cinc vistes
-  dialogs.js             Formulari d'entrada i full de configuració
+  dialogs.js             Formulari d'entrada, configuració i importació
   backup.js              Exportació, importació i còpies programades
+  publish.js             Publicació de la classe a GitHub
+  ics.js                 Generació del calendari subscribible
+  classfeed.js           Vista d'alumne: llegeix i refresca la classe publicada
   dates.js               Utilitats de dates en català
   theme.js               Tema clar/fosc i color d'accent
   dom.js, toast.js       Ajudes de DOM i avisos breus
