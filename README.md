@@ -58,7 +58,9 @@ de qui la consulta no es toquen mai.
    final del curs).
 2. A l'app: **Configuració › Publicar per als alumnes**, enganxa el testimoni.
    L'identificador de la classe es genera sol, amb una part aleatòria perquè
-   l'enllaç no es pugui endevinar.
+   l'enllaç no es pugui endevinar. El botó **Generar** en fa un de nou quan
+   canvies de classe o de curs; si ja havies publicat, l'app avisa que l'enllaç
+   antic deixarà d'actualitzar-se.
 3. Prem **Publicar ara** i copia l'enllaç dels alumnes.
 
 El testimoni es desa només en aquest navegador i només s'envia a GitHub. No surt

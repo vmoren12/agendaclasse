@@ -691,6 +691,7 @@ dialog::backdrop{background:var(--overlay);}
 .input-pair{display:flex;gap:8px;}
 .input-pair input{flex:1 1 90px;min-width:0;}
 .input-pair select{flex:1 1 130px;min-width:0;}
+.input-pair .btn{flex:none;white-space:nowrap;}
 .field .hint{font-size:.78rem;color:var(--ink-faint);margin-top:5px;}
 .field input[readonly]{background:var(--surface-2);font-size:.86rem;}
 .field a{color:color-mix(in srgb,var(--accent) 80%,var(--ink));}

@@ -340,6 +340,25 @@ function initPublishSection() {
     renderPublishFields();
   });
 
+  $('#btnGenerateClassId').addEventListener('click', () => {
+    const { classId, lastPublishedAt } = data.settings.publish;
+    // Canviar d'identificador deixa orfe l'enllaç que ja tinguin els alumnes.
+    if (classId && lastPublishedAt) {
+      const ok = window.confirm(
+        'Ja hi ha una classe publicada amb l\'identificador actual. Si en generes un de nou, '
+        + 'l\'enllaç que tenen els alumnes deixarà d\'actualitzar-se i n\'hauràs de repartir un altre. Vols continuar?',
+      );
+      if (!ok) return;
+    }
+    updatePublishSettings({
+      classId: suggestClassId(data.settings.className),
+      lastPublishedAt: null,
+      lastSignature: null,
+    });
+    renderPublishFields();
+    toast('Identificador nou. Publica-ho i reparteix l\'enllaç nou.');
+  });
+
   $('#btnPublish').addEventListener('click', async () => {
     const button = $('#btnPublish');
     button.disabled = true;
