@@ -2,7 +2,7 @@
   "app": "Agendari",
   "version": 2,
   "className": "Aigua",
-  "publishedAt": "2026-09-13T23:54:18.054Z",
+  "publishedAt": "2026-09-14T00:05:36.470Z",
   "subjects": [
     {
       "id": "smu0e6kue26faf8",
@@ -46,6 +46,17 @@
       "done": false,
       "createdAt": 1789340117372,
       "updatedAt": 1789340202409
+    },
+    {
+      "id": "emu0hcyw20cb54e",
+      "date": "2026-09-18",
+      "title": "Normes",
+      "type": "tasca",
+      "subjectId": null,
+      "notes": "",
+      "done": false,
+      "createdAt": 1789344238754,
+      "updatedAt": 1789344306111
     }
   ]
 }
