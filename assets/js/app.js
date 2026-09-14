@@ -15,10 +15,11 @@ import { APP_NAME, VIEWS, data, isReadOnly, subscribe, toggleDone, usePublishedD
 import { applyTheme } from './theme.js';
 import { render, setActions } from './views.js';
 import {
-  fillStaticSelects, initDialogs, openCalendarDialog, openEntryDialog, openSettings,
+  fillStaticSelects, initDialogs, openCalendarDialog, openEntryDialog, openSettings, publishNow,
 } from './dialogs.js';
 import { checkScheduledBackup } from './backup.js';
-import { hasToken } from './publish.js';
+import { canPublish, hasToken, hasUnpublishedChanges } from './publish.js';
+import { formatDateTime } from './dates.js';
 import {
   classIdFromUrl, fetchClass, forgetClass, readCache, rememberClass, rememberedClassId,
 } from './classfeed.js';
@@ -55,6 +56,7 @@ function draw() {
   const name = ui.className || data.settings.className;
   $('#className').textContent = name;
   document.title = `${APP_NAME} · ${name}`;
+  updatePublishFab();
   if (ui.classId) {
     $('#classBannerTime').textContent = ui.fetchedAt
       ? `Actualitzat ${timeAgo(ui.fetchedAt)}`
@@ -75,6 +77,50 @@ function newEntryHere() {
   if (isReadOnly()) return;
   const useRef = ui.view === 'day' || ui.view === 'week';
   openEntryDialog({ dateKey: toKey(useRef ? ui.refDate : today()) });
+}
+
+/* --------------------------- Botó de publicació --------------------------- */
+
+/**
+ * El botó flotant només surt si la publicació està configurada, i canvia
+ * d'aspecte segons si hi ha canvis pendents de publicar.
+ */
+function updatePublishFab() {
+  const fab = $('#btnPublishFab');
+  if (isReadOnly() || !canPublish()) {
+    fab.hidden = true;
+    return;
+  }
+
+  fab.hidden = false;
+  if (fab.dataset.state === 'busy') return;
+
+  const pending = hasUnpublishedChanges();
+  const { lastPublishedAt } = data.settings.publish;
+  fab.dataset.state = pending ? 'pending' : 'clean';
+  $('#publishFabLabel').textContent = pending ? 'Publicar canvis' : 'Publicat';
+  fab.title = lastPublishedAt
+    ? `Darrera publicació: ${formatDateTime(lastPublishedAt)}`
+    : "Encara no s'ha publicat res";
+  fab.setAttribute('aria-label', pending
+    ? 'Publicar els canvis perquè els alumnes els vegin'
+    : `Tot publicat. ${fab.title}`);
+}
+
+async function publishFromFab() {
+  const fab = $('#btnPublishFab');
+  if (fab.hidden || fab.dataset.state === 'busy') return;
+
+  fab.dataset.state = 'busy';
+  fab.disabled = true;
+  $('#publishFabLabel').textContent = 'Publicant…';
+  try {
+    await publishNow();
+  } finally {
+    fab.disabled = false;
+    fab.dataset.state = '';
+    updatePublishFab();
+  }
 }
 
 /* -------------------------------- Connexions ----------------------------- */
@@ -107,6 +153,7 @@ function wireControls() {
     }, 60);
   });
 
+  $('#btnPublishFab').addEventListener('click', publishFromFab);
   $('#btnRefreshClass').addEventListener('click', () => refreshClass({ manual: true }));
   $('#btnCalendar').addEventListener('click', () => openCalendarDialog(ui.classId));
 }
@@ -127,6 +174,8 @@ function wireKeyboard() {
     } else if (event.key === 't') {
       ui.refDate = today();
       draw();
+    } else if (event.key === 'p') {
+      publishFromFab();
     } else if (/^[1-5]$/.test(event.key)) {
       ui.view = VIEWS[Number(event.key) - 1];
       draw();

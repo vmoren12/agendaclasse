@@ -32,6 +32,7 @@ servidors: les dades es desen al dispositiu i es poden exportar quan vulguis.
 | --- | --- |
 | `N` | Nova entrada |
 | `T` | Anar a avui |
+| `P` | Publicar els canvis (si la publicació està configurada) |
 | `←` / `→` | Període anterior / següent |
 | `1` … `5` | Dia, setmana, mes, any, agenda |
 | `Esc` | Tancar el diàleg obert |
@@ -70,8 +71,10 @@ mai als fitxers exportats. Si fas servir un ordinador compartit, treu-lo amb
 ### El dia a dia
 
 Escrius a l'agenda com sempre i, quan vulguis que ho vegin, prems **Publicar
-ara**: mentrestant pots preparar coses sense que surtin publicades. La secció de
-configuració avisa si hi ha canvis pendents de publicar. Cada publicació escriu
+ara**: mentrestant pots preparar coses sense que surtin publicades. A baix a la
+dreta hi ha un botó flotant que fa de recordatori i de drecera: quan tot està
+publicat es queda discret amb el text «Publicat», i quan hi ha canvis pendents
+s'omple del color d'accent i passa a «Publicar canvis». Cada publicació escriu
 `classes/<identificador>.json` i `classes/<identificador>.ics` al repositori i el
 web es refresca en un minut aproximadament.
 

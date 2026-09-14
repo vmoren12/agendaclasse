@@ -392,6 +392,48 @@ span.check{cursor:default;}
 .class-banner-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .pill-btn.small{padding:6px 12px;font-size:.82rem;}
 
+/* Botó flotant de publicació (mode docent) */
+.publish-fab{
+  position:fixed;
+  right:max(16px,env(safe-area-inset-right));
+  bottom:max(16px,env(safe-area-inset-bottom));
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 16px;
+  min-height:42px;
+  border-radius:999px;
+  border:1.5px solid var(--line-strong);
+  background:var(--surface);
+  color:var(--ink-soft);
+  font-size:.88rem;
+  font-weight:600;
+  box-shadow:var(--shadow);
+  z-index:21;
+  transition:background .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.publish-fab:hover{border-color:var(--ink);color:var(--ink);}
+.publish-fab .dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:currentColor;
+  opacity:.45;
+  flex:none;
+}
+.publish-fab[data-state="pending"]{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:var(--accent-ink);
+  box-shadow:var(--shadow-lg);
+}
+.publish-fab[data-state="pending"]:hover{border-color:var(--accent);color:var(--accent-ink);}
+.publish-fab[data-state="pending"] .dot{opacity:1;animation:publish-pulse 2.2s ease-in-out infinite;}
+.publish-fab[data-state="busy"]{opacity:.65;}
+@keyframes publish-pulse{
+  0%,100%{transform:scale(1);opacity:1;}
+  50%{transform:scale(.55);opacity:.45;}
+}
+
 /* Avisos temporals */
 .toast-area{
   position:fixed;
@@ -871,6 +913,7 @@ input[type="color"]::-moz-color-swatch{border:none;border-radius:50%;}
   .period-label{flex:1;}
   .new-entry-desktop{display:none;}
   .fab{display:flex;}
+  .publish-fab{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 68px);}
   .month-cell{min-height:62px;padding:4px 3px 6px;gap:2px;align-items:center;}
   .cell-add{width:18px;height:18px;font-size:.8rem;top:2px;right:2px;}
   .cell-num{width:24px;height:24px;font-size:.92rem;}
@@ -894,7 +937,7 @@ input[type="color"]::-moz-color-swatch{border:none;border-radius:50%;}
 }
 
 @media print{
-  .top-actions,.views,.period,.fab,.toast-area,.app-footer,.entry-actions,.add-in-cell,.cell-add{display:none !important;}
+  .top-actions,.views,.period,.fab,.toast-area,.app-footer,.entry-actions,.add-in-cell,.cell-add,.publish-fab{display:none !important;}
   body{background:#fff;}
   .app{padding:0;max-width:none;}
   .entry-card,.month-cell,.week-col{break-inside:avoid;}

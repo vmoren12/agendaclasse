@@ -84,7 +84,7 @@ export function suggestClassId(className) {
   const base = className
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 20) || 'classe';
@@ -119,6 +119,11 @@ export function signature() {
     hash = Math.imul(hash, 0x01000193);
   }
   return (hash >>> 0).toString(36);
+}
+
+/** Hi ha testimoni, repositori i identificador: es pot publicar. */
+export function canPublish() {
+  return hasToken() && Boolean(data.settings.publish.classId) && Boolean(currentRepo());
 }
 
 export function hasUnpublishedChanges() {

@@ -270,6 +270,28 @@ function renderSettings() {
 
 /* ---------------------- Publicació per als alumnes ------------------------ */
 
+let publishing = false;
+
+/**
+ * Publica i explica com ha anat. La fan servir tant el botó de Configuració
+ * com el botó flotant, així que mai hi ha dues publicacions alhora.
+ * @returns {Promise<boolean>} si ha anat bé
+ */
+export async function publishNow() {
+  if (publishing) return false;
+  publishing = true;
+  try {
+    const result = await publishClass();
+    toast(`Publicades ${result.entries} entrades. Els alumnes ho veuran d'aquí a un minut.`);
+    return true;
+  } catch (err) {
+    toast(err.message || "No s'ha pogut publicar.");
+    return false;
+  } finally {
+    publishing = false;
+  }
+}
+
 function renderPublishFields() {
   const { classId, lastPublishedAt } = data.settings.publish;
   $('#setToken').value = hasToken() ? '\u2022'.repeat(16) : '';
@@ -364,10 +386,7 @@ function initPublishSection() {
     button.disabled = true;
     button.textContent = 'Publicant…';
     try {
-      const result = await publishClass();
-      toast(`Publicades ${result.entries} entrades. Els alumnes ho veuran d'aquí a un minut.`);
-    } catch (err) {
-      toast(err.message || "No s'ha pogut publicar.");
+      await publishNow();
     } finally {
       button.textContent = 'Publicar ara';
       renderPublishFields();
