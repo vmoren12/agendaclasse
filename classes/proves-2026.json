@@ -2,7 +2,7 @@
   "app": "Agendari",
   "version": 2,
   "className": "Aigua",
-  "publishedAt": "2026-09-14T00:05:36.470Z",
+  "publishedAt": "2026-09-14T00:17:16.984Z",
   "subjects": [
     {
       "id": "smu0e6kue26faf8",
@@ -57,6 +57,17 @@
       "done": false,
       "createdAt": 1789344238754,
       "updatedAt": 1789344306111
+    },
+    {
+      "id": "emu0hty6fc8e971",
+      "date": "2026-09-19",
+      "title": "Poema",
+      "type": "tasca",
+      "subjectId": "smu0e6kuee2522c",
+      "notes": "Notes del poema",
+      "done": false,
+      "createdAt": 1789345030983,
+      "updatedAt": 1789345030983
     }
   ]
 }
